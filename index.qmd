@@ -37,7 +37,7 @@ library(httr)
 ```{r}
 #| label: API-call-while-loop
 #| echo: false
-#| 
+ 
 library(rjson)
 library(httr)
 
