@@ -1,18 +1,23 @@
 ---
 title: "R-4.4.1-NM_Statistics"
+filters: 
+  - shinylive
 ---
 
 ```{r}
-#| label: API-call-one-time
+#| label: API_call_basic
 #| echo: false
 
 library(rjson)
 library(httr)
 
+  # API URL 및 키 설정
   base_url <- "http://apis.data.go.kr/B551182/mdlrtActionInfoService"
   call_url <- "getMdlrtActionByClassesStats"
   My_API_Key <- "DRwFWZ/jfi6551teJKgRhkKgC+XhcjobN+ccY2MQdF9yZdx8xL5Kn4IljljMCWGsl2ObEco/rm21r14CN7iG0g=="
-  params <- list(
+
+  # 파리미터 설정  
+    params <- list(
     serviceKey = My_API_Key,
     pageNo = 1,
     numOfRows = 10,
@@ -22,12 +27,13 @@ library(httr)
     st5Cd = "HK010"
   )
   
-  # API 호출
+  # url 생성 및 response 회신받기  
   url <- paste0(base_url, "/", call_url)
   response <- GET(url, query = params)
 
+  # parsing하여 데이터 추출
   if (status_code(response) == 200) {
-    json_text <- content(response, as = "text")
+    json_text <- content(response, as = "text", encoding = "UTF-8")
     data <- fromJSON(json_text)
   } else {
     print(paste("API 호출 실패:", status_code(response)))
@@ -35,11 +41,75 @@ library(httr)
 ```
 
 ```{r}
-#| label: API-call-while-loop
+#| label: API_year_loop
 #| echo: false
  
 library(rjson)
 library(httr)
+
+# 현재 연도를 설정
+my_year <- as.numeric(format(Sys.Date(), "%Y"))
+
+
+base_url <- "http://apis.data.go.kr/B551182/mdlrtActionInfoService"
+call_url <- "getMdlrtActionByClassesStats"
+My_API_Key <- "DRwFWZ/jfi6551teJKgRhkKgC+XhcjobN+ccY2MQdF9yZdx8xL5Kn4IljljMCWGsl2ObEco/rm21r14CN7iG0g=="
+
+# 조건 변수 설정
+xcondition <- TRUE  
+
+while (xcondition) {
+  params <- list(
+    serviceKey = URLencode(My_API_Key),
+    pageNo = 1,
+    numOfRows = 10,
+    resultType = "json",
+    year = as.character(my_year), # string
+    stdType = "1",
+    st5Cd = "HK010"
+  )
+  
+  url <- paste0(base_url, "/", call_url)
+  response <- GET(url, query = params)
+
+  if (status_code(response) == 200) {
+    json_text <- content(response, as = "text", encoding = "UTF-8")
+    data <- fromJSON(json_text)
+    
+    # totalCount가 존재하는지 확인
+    if (!is.null(data$response$body$totalCount)) {
+      print(paste("연도:", my_year, "- totalCount:", data$response$body$totalCount))
+
+      # totalCount가 5인 경우 루프 종료
+      if (data$response$body$totalCount == 5) {
+        xcondition <- FALSE
+        print("totalCount가 5에 도달하여 루프를 종료합니다.")
+      }
+    } else {
+      print("totalCount 값이 없습니다. 루프 종료.")
+      xcondition <- FALSE
+    }
+  } else {
+    print(paste("API 호출 실패:", status_code(response), "연도:", my_year))
+    xcondition <- FALSE  # 오류 발생 시 루프 종료
+  }
+  
+  # 연도를 1 감소
+  my_year <- my_year - 1
+}
+ 
+```
+
+```{r}
+#| label: API_data.frame
+#| echo: false
+ 
+library(rjson)
+library(httr)
+library(plyr)
+
+# 모든 데이터를 저장할 리스트 초기화
+data_frame<-data.frame()
 
 # 현재 연도를 설정
 my_year <- as.numeric(format(Sys.Date(), "%Y"))
@@ -69,12 +139,18 @@ while (xcondition) {
   response <- GET(url, query = params)
 
   if (status_code(response) == 200) {
-    json_text <- content(response, as = "text")
+    json_text <- content(response, as = "text", encoding = "UTF-8")
     data <- fromJSON(json_text)
     
     # totalCount가 존재하는지 확인 후 출력
     if (!is.null(data$response$body$totalCount)) {
       print(paste("연도:", my_year, "- totalCount:", data$response$body$totalCount))
+      if(data$response$body$totalCount == 6){
+        data_list <-data$response$body$items$item
+        df <- rbind.fill(lapply(data_list, as.data.frame))
+        data_frame<-rbind(data_frame,df)
+        print("saved")
+      }
       
       # totalCount가 5인 경우 루프 종료
       if (data$response$body$totalCount == 5) {
@@ -93,5 +169,210 @@ while (xcondition) {
   # 연도를 1 감소
   my_year <- my_year - 1
 }
+
+
  
 ```
+
+```{r}
+#| label: API_adding_graph
+#| echo: false
+ 
+library(rjson)
+library(httr)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+
+my_st5Cd <- "HK010"
+
+# 모든 데이터를 저장할 리스트 초기화
+data_frame<-data.frame()
+
+# 현재 연도를 설정
+my_year <- as.numeric(format(Sys.Date(), "%Y"))
+
+# API 기본 URL 및 키 설정
+base_url <- "http://apis.data.go.kr/B551182/mdlrtActionInfoService"
+call_url <- "getMdlrtActionByClassesStats"
+My_API_Key <- "DRwFWZ/jfi6551teJKgRhkKgC+XhcjobN+ccY2MQdF9yZdx8xL5Kn4IljljMCWGsl2ObEco/rm21r14CN7iG0g=="
+
+# 조건 변수 설정
+xcondition <- TRUE  
+
+while (xcondition) {
+  # API 요청 매개변수 설정
+  params <- list(
+    serviceKey = URLencode(My_API_Key),
+    pageNo = 1,
+    numOfRows = 10,
+    resultType = "json",
+    year = as.character(my_year),
+    stdType = "1",
+    st5Cd = my_st5Cd
+  )
+  
+  # API 호출 URL 설정
+  url <- paste0(base_url, "/", call_url)
+  response <- GET(url, query = params)
+
+  if (status_code(response) == 200) {
+    json_text <- content(response, as = "text", encoding = "UTF-8")
+    data <- fromJSON(json_text)
+    
+    # totalCount가 존재하는지 확인 후 출력
+    if (!is.null(data$response$body$totalCount)) {
+      print(paste("연도:", my_year, "- totalCount:", data$response$body$totalCount))
+      if(data$response$body$totalCount == 6){
+        data_list <-data$response$body$items$item
+        df <- rbind.fill(lapply(data_list, as.data.frame))
+        data_frame<-rbind(data_frame,df)
+        print("saved")
+      }
+      
+      # totalCount가 5인 경우 루프 종료
+      if (data$response$body$totalCount == 5) {
+        xcondition <- FALSE
+        print("totalCount가 5에 도달하여 루프를 종료합니다.")
+      }
+    } else {
+      print("totalCount 값이 없습니다. 루프 종료.")
+      xcondition <- FALSE
+    }
+  } else {
+    print(paste("API 호출 실패:", status_code(response), "연도:", my_year))
+    xcondition <- FALSE  # 오류 발생 시 루프 종료
+  }
+  
+  my_year <- my_year - 1
+}
+
+# 컬럼명변경
+data_frame<-setNames(data_frame,c("진료금액","요양기관종별","환자수","행위코드","행위코드명","총사용량","연도"))
+
+# 그래프 그리기
+ggplot(data = data_frame, aes(x = 연도, y = 총사용량, color = 요양기관종별)) +
+  geom_line(size = 1) +          # 각 요양기관종별로 선 그래프
+  geom_point(size = 2) +         # 각 점 표시
+  labs(title = paste(my_st5Cd,"연도별 요양기관종별 총사용량"),
+       x = "연도",
+       y = "총사용량") +
+  theme_minimal() +              # 깔끔한 테마
+  theme(legend.title = element_blank())  # 범례 제목 제거
+ 
+```
+
+
+```{shinylive-r}
+#| standalone: true
+#| viewerHeight: 800
+
+# Shiny 패키지 로드
+library(shiny)
+library(httr)
+library(rjson)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+
+# UI 구성
+ui <- fluidPage(
+  titlePanel("Medical Data Chart by Medical Code"),
+  sidebarLayout(
+    sidebarPanel(
+      textInput("st5Cd", "Enter Medical Code (e.g., HK010):", value = "HK010"),
+      actionButton("generate", "Generate Chart")
+    ),
+    mainPanel(
+      plotOutput("chart")
+    )
+  )
+)
+
+# Server 로직 구성
+server <- function(input, output, session) {
+  # 데이터를 저장할 reactiveValues 객체 생성
+  rv <- reactiveValues(data = NULL)
+
+  observeEvent(input$generate, {
+    my_st5Cd <- input$st5Cd
+    my_year <- as.numeric(format(Sys.Date(), "%Y"))
+
+    base_url <- "http://apis.data.go.kr/B551182/mdlrtActionInfoService"
+    call_url <- "getMdlrtActionByClassesStats"
+    My_API_Key <- "DRwFWZ/jfi6551teJKgRhkKgC+XhcjobN+ccY2MQdF9yZdx8xL5Kn4IljljMCWGsl2ObEco/rm21r14CN7iG0g=="
+    
+    data_frame <- data.frame()
+    xcondition <- TRUE  
+
+    while (xcondition) {
+      # API 요청 매개변수 설정
+      params <- list(
+        serviceKey = URLencode(My_API_Key),
+        pageNo = 1,
+        numOfRows = 10,
+        resultType = "json",
+        year = as.character(my_year),
+        stdType = "1",
+        st5Cd = my_st5Cd
+      )
+      
+      # API 호출
+      url <- paste0(base_url, "/", call_url)
+      response <- GET(url, query = params)
+
+      if (status_code(response) == 200) {
+        json_text <- content(response, as = "text", encoding = "UTF-8")
+        data <- fromJSON(json_text)
+        
+        if (!is.null(data$response$body$totalCount)) {
+          if (data$response$body$totalCount == 6) {
+            data_list <- data$response$body$items$item
+            df <- rbind.fill(lapply(data_list, as.data.frame))
+            data_frame <- rbind(data_frame, df)
+          }
+          
+          if (data$response$body$totalCount == 5) {
+            xcondition <- FALSE
+          }
+        } else {
+          xcondition <- FALSE
+        }
+      } else {
+        xcondition <- FALSE
+      }
+      
+      # 연도를 1 감소
+      my_year <- my_year - 1
+    }
+    
+    # 컬럼명 변경
+    if (nrow(data_frame) > 0) {
+      rv$data <- setNames(data_frame, c("진료금액", "요양기관종별", "환자수", "행위코드", "행위코드명", "총사용량", "연도"))
+    } else {
+      rv$data <- NULL
+    }
+  })
+
+  output$chart <- renderPlot({
+    if (!is.null(rv$data)) {
+      ggplot(data = rv$data, aes(x = 연도, y = 총사용량, color = 요양기관종별)) +
+        geom_line(size = 1) + 
+        geom_point(size = 2) + 
+        labs(
+          title = paste(input$st5Cd, "연도별 요양기관종별 총사용량"),
+          x = "연도",
+          y = "총사용량"
+        ) +
+        theme_minimal() +
+        theme(legend.title = element_blank())
+    }
+  })
+}
+
+# Shiny 앱 실행
+shinyApp(ui = ui, server = server)
+
+```
+
+

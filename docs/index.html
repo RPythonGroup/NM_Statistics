@@ -20,40 +20,6 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
-/* CSS for syntax highlighting */
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
 </style>
 
 
@@ -73,6 +39,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<meta name="shinylive:serviceworker_dir" content=".">
+<script src="site_libs/quarto-contrib/shinylive-0.5.0/shinylive/load-shinylive-sw.js" type="module"></script>
+<script src="site_libs/quarto-contrib/shinylive-0.5.0/shinylive/run-python-blocks.js" type="module"></script>
+<link href="site_libs/quarto-contrib/shinylive-0.5.0/shinylive/shinylive.css" rel="stylesheet">
+<link href="site_libs/quarto-contrib/shinylive-quarto-css/shinylive-quarto.css" rel="stylesheet">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -167,49 +138,202 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">#| label: single API call</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rjson)</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(httr)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(plyr)</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># download_api_data &lt;- function() {</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  base_url <span class="ot">&lt;-</span> <span class="st">"http://apis.data.go.kr/B551182/mdlrtActionInfoService"</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  call_url <span class="ot">&lt;-</span> <span class="st">"getMdlrtActionByClassesStats"</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="co"># method &lt;- "GET" # "사용할일이 없어 주석처리" by BenKorea on 2024-11-12</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  My_API_Key <span class="ot">&lt;-</span> <span class="st">"DRwFWZ/jfi6551teJKgRhkKgC+XhcjobN+ccY2MQdF9yZdx8xL5Kn4IljljMCWGsl2ObEco/rm21r14CN7iG0g=="</span>  <span class="co"># 실제 API 키</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  params <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">serviceKey =</span> My_API_Key,</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">pageNo =</span> <span class="dv">1</span>,</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">numOfRows =</span> <span class="dv">10</span>,</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">resultType =</span> <span class="st">"json"</span>,</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">year =</span> <span class="st">"2023"</span>,</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">stdType =</span> <span class="st">"1"</span>,</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">st5Cd =</span> <span class="st">"HK010"</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>  <span class="co"># API 호출</span></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>  url <span class="ot">&lt;-</span> <span class="fu">paste0</span>(base_url, <span class="st">"/"</span>, call_url)</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>  response <span class="ot">&lt;-</span> <span class="fu">GET</span>(url, <span class="at">query =</span> params)</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (<span class="fu">status_code</span>(response) <span class="sc">==</span> <span class="dv">200</span>) {</span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    json_text <span class="ot">&lt;-</span> <span class="fu">content</span>(response, <span class="at">as =</span> <span class="st">"text"</span>)</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>    data <span class="ot">&lt;-</span> <span class="fu">fromJSON</span>(json_text)</span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>    <span class="co"># return(data)</span></span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> {</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"API 호출 실패:"</span>, <span class="fu">status_code</span>(response)))</span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    <span class="co"># return(NULL)</span></span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>  }</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "연도: 2024 - totalCount: 0"
+[1] "연도: 2023 - totalCount: 6"
+[1] "연도: 2022 - totalCount: 6"
+[1] "연도: 2021 - totalCount: 6"
+[1] "연도: 2020 - totalCount: 6"
+[1] "연도: 2019 - totalCount: 6"
+[1] "연도: 2018 - totalCount: 5"
+[1] "totalCount가 5에 도달하여 루프를 종료합니다."</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "연도: 2024 - totalCount: 0"
+[1] "연도: 2023 - totalCount: 6"
+[1] "saved"
+[1] "연도: 2022 - totalCount: 6"
+[1] "saved"
+[1] "연도: 2021 - totalCount: 6"
+[1] "saved"
+[1] "연도: 2020 - totalCount: 6"
+[1] "saved"
+[1] "연도: 2019 - totalCount: 6"
+[1] "saved"
+[1] "연도: 2018 - totalCount: 5"
+[1] "totalCount가 5에 도달하여 루프를 종료합니다."</code></pre>
+</div>
+</div>
+<div class="cell">
 <div class="cell-output cell-output-stderr">
-<pre><code>No encoding supplied: defaulting to UTF-8.</code></pre>
+<pre><code>
+Attaching package: 'dplyr'</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># }</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co"># data &lt;- download_api_data()</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># data_list&lt;-data$response$body$items$item</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># df &lt;- rbind.fill(lapply(data_list, as.data.frame))</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:plyr':
+
+    arrange, count, desc, failwith, id, mutate, rename, summarise,
+    summarize</code></pre>
 </div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:stats':
+
+    filter, lag</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "연도: 2024 - totalCount: 0"
+[1] "연도: 2023 - totalCount: 6"
+[1] "saved"
+[1] "연도: 2022 - totalCount: 6"
+[1] "saved"
+[1] "연도: 2021 - totalCount: 6"
+[1] "saved"
+[1] "연도: 2020 - totalCount: 6"
+[1] "saved"
+[1] "연도: 2019 - totalCount: 6"
+[1] "saved"
+[1] "연도: 2018 - totalCount: 5"
+[1] "totalCount가 5에 도달하여 루프를 종료합니다."</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+ℹ Please use `linewidth` instead.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 5 rows containing missing values or values outside the scale range
+(`geom_line()`).</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 5 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="index_files/figure-html/API_adding_graph-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<pre class="shinylive-r" data-engine="r"><code>#| '!! shinylive warning !!': |
+#|   shinylive does not work in self-contained HTML documents.
+#|   Please set `embed-resources: false` in your metadata.
+#| standalone: true
+#| viewerHeight: 800
+
+# Shiny 패키지 로드
+library(shiny)
+library(httr)
+library(rjson)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+
+# UI 구성
+ui &lt;- fluidPage(
+  titlePanel("Medical Data Chart by Medical Code"),
+  sidebarLayout(
+    sidebarPanel(
+      textInput("st5Cd", "Enter Medical Code (e.g., HK010):", value = "HK010"),
+      actionButton("generate", "Generate Chart")
+    ),
+    mainPanel(
+      plotOutput("chart")
+    )
+  )
+)
+
+# Server 로직 구성
+server &lt;- function(input, output, session) {
+  # 데이터를 저장할 reactiveValues 객체 생성
+  rv &lt;- reactiveValues(data = NULL)
+
+  observeEvent(input$generate, {
+    my_st5Cd &lt;- input$st5Cd
+    my_year &lt;- as.numeric(format(Sys.Date(), "%Y"))
+
+    base_url &lt;- "http://apis.data.go.kr/B551182/mdlrtActionInfoService"
+    call_url &lt;- "getMdlrtActionByClassesStats"
+    My_API_Key &lt;- "DRwFWZ/jfi6551teJKgRhkKgC+XhcjobN+ccY2MQdF9yZdx8xL5Kn4IljljMCWGsl2ObEco/rm21r14CN7iG0g=="
+    
+    data_frame &lt;- data.frame()
+    xcondition &lt;- TRUE  
+
+    while (xcondition) {
+      # API 요청 매개변수 설정
+      params &lt;- list(
+        serviceKey = URLencode(My_API_Key),
+        pageNo = 1,
+        numOfRows = 10,
+        resultType = "json",
+        year = as.character(my_year),
+        stdType = "1",
+        st5Cd = my_st5Cd
+      )
+      
+      # API 호출
+      url &lt;- paste0(base_url, "/", call_url)
+      response &lt;- GET(url, query = params)
+
+      if (status_code(response) == 200) {
+        json_text &lt;- content(response, as = "text", encoding = "UTF-8")
+        data &lt;- fromJSON(json_text)
+        
+        if (!is.null(data$response$body$totalCount)) {
+          if (data$response$body$totalCount == 6) {
+            data_list &lt;- data$response$body$items$item
+            df &lt;- rbind.fill(lapply(data_list, as.data.frame))
+            data_frame &lt;- rbind(data_frame, df)
+          }
+          
+          if (data$response$body$totalCount == 5) {
+            xcondition &lt;- FALSE
+          }
+        } else {
+          xcondition &lt;- FALSE
+        }
+      } else {
+        xcondition &lt;- FALSE
+      }
+      
+      # 연도를 1 감소
+      my_year &lt;- my_year - 1
+    }
+    
+    # 컬럼명 변경
+    if (nrow(data_frame) &gt; 0) {
+      rv$data &lt;- setNames(data_frame, c("진료금액", "요양기관종별", "환자수", "행위코드", "행위코드명", "총사용량", "연도"))
+    } else {
+      rv$data &lt;- NULL
+    }
+  })
+
+  output$chart &lt;- renderPlot({
+    if (!is.null(rv$data)) {
+      ggplot(data = rv$data, aes(x = 연도, y = 총사용량, color = 요양기관종별)) +
+        geom_line(size = 1) + 
+        geom_point(size = 2) + 
+        labs(
+          title = paste(input$st5Cd, "연도별 요양기관종별 총사용량"),
+          x = "연도",
+          y = "총사용량"
+        ) +
+        theme_minimal() +
+        theme(legend.title = element_blank())
+    }
+  })
+}
+
+# Shiny 앱 실행
+shinyApp(ui = ui, server = server)
+</code></pre>
 
 
 
